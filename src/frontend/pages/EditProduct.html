@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Product - EcoFinds</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-gray-100">
+    <div data-navbar></div>
+    <main class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Form Section -->
+            <div>
+                <h2 class="text-3xl font-bold mb-6">Edit Your Listing</h2>
+                <form id="editProductForm" class="space-y-5 bg-white p-8 rounded-xl shadow-lg">
+                    <!-- Form fields are populated by script -->
+                     <p id="form-loading">Loading form...</p>
+                </form>
+            </div>
+            <!-- Preview Section -->
+            <div class="hidden lg:block">
+                 <h2 class="text-3xl font-bold mb-6 text-gray-800">Your Listing Preview</h2>
+                 <!-- FIXED: Added sticky and top classes to make the box not move -->
+                 <div class="bg-white rounded-xl shadow-lg overflow-hidden sticky top-28">
+                    <div class="p-6">
+                        <h1 id="preview-title" class="text-2xl font-bold text-gray-900">Loading...</h1>
+                        <p id="preview-price" class="text-xl font-bold text-green-600 mt-1">$0.00</p>
+                        <p class="text-xs text-gray-500 mt-1">Listed a few seconds ago</p>
+                        
+                        <div class="mt-4 border-t pt-4">
+                            <h2 class="font-semibold mb-2">Details</h2>
+                            <p id="preview-description" class="text-gray-700 leading-relaxed text-sm">Loading...</p>
+                        </div>
+                        
+                        <div class="mt-4 border-t pt-4">
+                            <h2 class="font-semibold mb-2">Seller Information</h2>
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-gray-200 rounded-full"></div>
+                                <span id="preview-seller" class="font-semibold"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- FIXED: Removed the message button from the preview -->
+                 </div>
+            </div>
+        </div>
+    </main>
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        if (!auth.isLoggedIn()) window.location.href = './login.html';
+
+        const form = document.getElementById('editProductForm');
+        const productId = new URLSearchParams(window.location.search).get('id');
+
+        // --- Live Preview Logic ---
+        function updatePreview() {
+            document.getElementById('preview-title').textContent = document.getElementById('title').value || 'Your Product Title';
+            document.getElementById('preview-price').textContent = `$${Number(document.getElementById('price').value || 0).toFixed(2)}`;
+            document.getElementById('preview-description').textContent = document.getElementById('description').value || 'Your description will appear here.';
+            
+            const seller = auth.getUser();
+            document.getElementById('preview-seller').textContent = seller ? seller.username : 'Your Name';
+        }
+
+        async function loadProductData() {
+            try {
+                const res = await fetch(`http://localhost:3000/api/products/${productId}`);
+                if (!res.ok) throw new Error('Could not fetch product data.');
+                const p = await res.json();
+                
+                form.innerHTML = `
+                    <div><label for="title" class="block font-medium">Title</label><input type="text" id="title" name="title" value="${p.title}" required class="mt-1 w-full p-2 border rounded-lg"></div>
+                    <div><label for="image_url" class="block font-medium">Image URL</label><input type="url" id="image_url" name="image_url" value="${p.image_url}" required class="mt-1 w-full p-2 border rounded-lg"></div>
+                    <div><label for="category" class="block font-medium">Category</label><select id="category" name="category" required class="mt-1 w-full p-2 border rounded-lg"><option>Electronics</option><option>Furniture</option><option>Apparel</option><option>Books</option></select></div>
+                    <div><label for="description" class="block font-medium">Description</label><textarea id="description" name="description" rows="4" required class="mt-1 w-full p-2 border rounded-lg">${p.description}</textarea></div>
+                    <div><label for="price" class="block font-medium">Price ($)</label><input type="number" id="price" name="price" value="${p.price}" step="0.01" min="0" required class="mt-1 w-full p-2 border rounded-lg"></div>
+                    <button type="submit" class="w-full py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700">Save Changes</button>`;
+                
+                document.getElementById('category').value = p.category;
+                updatePreview();
+                form.addEventListener('input', updatePreview);
+            } catch (error) {
+                console.error(error);
+                form.innerHTML = `<p class="text-red-500">Error loading product data. Please go back and try again.</p>`;
+            }
+        }
+        
+        // --- Form Submission Logic ---
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(e.target).entries());
+            try {
+                const response = await fetch(`http://localhost:3000/api/products/${productId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': auth.getToken() },
+                    body: JSON.stringify(data)
+                });
+                if (!response.ok) throw new Error('Failed to update product.');
+                window.location.href = './SellerDashboard.html';
+            } catch(error) {
+                console.error(error);
+                alert('An error occurred. Please try again.');
+            }
+        });
+
+        loadProductData();
+    </script>
+</body>
+</html>
+

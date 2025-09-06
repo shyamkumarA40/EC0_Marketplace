@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Listings - EcoFinds</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-gray-100">
+    <div data-navbar></div>
+    <main class="container mx-auto max-w-4xl p-4 mt-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold">My Product Listings</h2>
+            <a href="./AddProduct.html" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700 shadow-md">Add New Product</a>
+        </div>
+        <div id="productList" class="space-y-4"></div>
+    </main>
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        if (!auth.isLoggedIn()) window.location.href = './login.html';
+
+        const productListDiv = document.getElementById('productList');
+
+        async function fetchProducts() {
+            const res = await fetch('http://localhost:3000/api/products', { headers: { 'x-auth-token': auth.getToken() } });
+            const products = await res.json();
+
+            if (products.length === 0) {
+                productListDiv.innerHTML = '<p class="text-gray-500 text-center py-8">You have not listed any products yet.</p>';
+                return;
+            }
+
+            productListDiv.innerHTML = '';
+            products.forEach(p => {
+                productListDiv.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl shadow-lg flex items-center space-x-6" id="product-${p.id}">
+                        <img src="${p.image_url}" class="w-28 h-28 object-cover rounded-lg">
+                        <div class="flex-grow">
+                            <h3 class="text-xl font-semibold">${p.title}</h3>
+                            <p class="text-2xl font-bold text-green-700 mt-1">$${Number(p.price).toFixed(2)}</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <a href="./EditProduct.html?id=${p.id}" class="bg-blue-500 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-600">Edit</a>
+                            <button onclick="deleteProduct(${p.id})" class="bg-red-500 text-white font-medium py-2 px-4 rounded-lg hover:bg-red-600">Delete</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('Are you sure?')) return;
+            await fetch(`http://localhost:3000/api/products/${id}`, {
+                method: 'DELETE',
+                headers: { 'x-auth-token': auth.getToken() }
+            });
+            document.getElementById(`product-${id}`).remove();
+        }
+
+        fetchProducts();
+    </script>
+</body>
+</html>

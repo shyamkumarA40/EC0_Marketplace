@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - EcoFinds</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-gray-50">
+    <div data-navbar></div>
+    <main class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Search Results for "<span id="searchTerm" class="text-green-600"></span>"</h1>
+        <div id="productList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Search results will be loaded here -->
+        </div>
+    </main>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        async function performSearch() {
+            const productListDiv = document.getElementById('productList');
+            const searchTermSpan = document.getElementById('searchTerm');
+            const query = new URLSearchParams(window.location.search).get('q');
+
+            if (!query) {
+                productListDiv.innerHTML = '<p class="text-center col-span-full text-gray-500">Please enter a search term.</p>';
+                return;
+            }
+
+            searchTermSpan.textContent = query;
+            
+            try {
+                const response = await fetch(`http://localhost:3000/api/products/search?q=${encodeURIComponent(query)}`);
+                const products = await response.json();
+
+                if (products.length === 0) {
+                    productListDiv.innerHTML = `<p class="text-center col-span-full text-gray-500">No results found for "${query}".</p>`;
+                    return;
+                }
+                
+                products.forEach(product => {
+                    const productJSON = JSON.stringify(product).replace(/'/g, "\\'");
+                    const productCard = `
+                        <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 group flex flex-col">
+                            <a href="./product.html?id=${product.id}" class="block">
+                                <div class="w-full h-48 bg-gray-200"><img src="${product.image_url}" alt="${product.title}" class="w-full h-full object-cover"></div>
+                            </a>
+                            <div class="p-4 flex flex-col flex-grow">
+                                <h2 class="text-lg font-semibold text-gray-800 truncate group-hover:text-green-600">${product.title}</h2>
+                                <p class="text-gray-500 text-sm">Sold by ${product.seller_name}</p>
+                                <div class="mt-auto flex justify-between items-center pt-2">
+                                    <p class="text-xl font-bold text-green-700">$${Number(product.price).toFixed(2)}</p>
+                                    <button onclick='addToCartFromIndex(event, ${productJSON})' title="Add to Cart" class="p-2 rounded-full hover:bg-green-100 transition">
+                                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    productListDiv.insertAdjacentHTML('beforeend', productCard);
+                });
+            } catch (error) {
+                console.error('Error fetching search results:', error);
+                productListDiv.innerHTML = '<p class="text-center col-span-full text-red-500">Could not load search results.</p>';
+            }
+        }
+
+        function addToCartFromIndex(event, product) {
+            event.preventDefault(); event.stopPropagation();
+            let cart = JSON.parse(localStorage.getItem('ecofinds-cart')) || [];
+            if (cart.some(item => item.id === product.id)) {
+                alert('This item is already in your cart.');
+                return;
+            }
+            cart.push(product);
+            localStorage.setItem('ecofinds-cart', JSON.stringify(cart));
+            alert(`${product.title} has been added to your cart!`);
+            const clickedButton = event.currentTarget;
+            clickedButton.innerHTML = `<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+            clickedButton.disabled = true;
+        }
+
+        performSearch();
+    </script>
+</body>
+</html>

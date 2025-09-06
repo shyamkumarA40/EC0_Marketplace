@@ -1,0 +1,19 @@
+{
+  "name": "ecofinds-marketplace",
+  "version": "1.0.0",
+  "description": "A second-hand marketplace application for the Odoo Hackathon.",
+  "main": "src/backend/server.js",
+  "scripts": {
+    "start": "node src/backend/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.5"
+  }
+}
